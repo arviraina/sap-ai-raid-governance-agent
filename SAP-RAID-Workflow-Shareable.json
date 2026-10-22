@@ -1,0 +1,812 @@
+{
+  "name": "AI Career - Project Action Tracker",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8357ed5c-65e5-4890-94de-371adb0ba755",
+      "name": "When clicking \u2018Execute workflow\u2019"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a6d2a3d5-9401-420e-a8fc-70ce5eb125e4",
+              "name": "project_name",
+              "value": "SAP Transformation",
+              "type": "string"
+            },
+            {
+              "id": "e94eefdd-184c-444e-b464-a82cedaf933b",
+              "name": "action_owner",
+              "value": "Alex",
+              "type": "string"
+            },
+            {
+              "id": "e4a3f179-0e13-4cf1-bf46-c15a747d89de",
+              "name": "action_status",
+              "value": "Open",
+              "type": "string"
+            },
+            {
+              "id": "2a4b2dca-a20e-46d4-886e-ded1d88690e4",
+              "name": "priority",
+              "value": "High",
+              "type": "string"
+            },
+            {
+              "id": "6cd11a09-71d9-4f76-b8bc-02a26253c888",
+              "name": "days_overdue",
+              "value": "5",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "7263db19-ff92-4ee4-9f95-5a4797f73c66",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "fc80c6fd-eac3-4df1-a612-25edaf6ce33e",
+              "leftValue": "={{ $json.days_overdue }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        672,
+        0
+      ],
+      "id": "642685ca-c1c0-443a-b9f2-c121bf056870",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst actions = [\n  {\n    action_name: \"Complete UAT testing\",\n    action_owner: \"Alex\",\n    action_status: \"Open\",\n    priority: \"High\",\n    days_overdue: 5\n  },\n  {\n    action_name: \"Approve cutover plan\",\n    action_owner: \"Sarah\",\n    action_status: \"Open\",\n    priority: \"Critical\",\n    days_overdue: 3\n  },\n  {\n    action_name: \"Review migration defects\",\n    action_owner: \"James\",\n    action_status: \"Open\",\n    priority: \"Medium\",\n    days_overdue: 0\n  },\n  {\n    action_name: \"Finalise ELS strategy\",\n    action_owner: \"Priya\",\n    action_status: \"Open\",\n    priority: \"High\",\n    days_overdue: 7\n  },\n  {\n    action_name: \"Confirm go-live readiness\",\n    action_owner: \"David\",\n    action_status: \"Open\",\n    priority: \"Critical\",\n    days_overdue: 0\n  }\n];\n\nreturn actions.map(action => ({\n  json: {\n    project_name: \"SAP Transformation\",\n    ...action\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "67e31de8-c4c8-4cda-b412-4b0ddea12693",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst actions = $input.all().map(item => item.json);\n\nfunction classifyRisk(action) {\n  const priority = String(action.priority).toLowerCase();\n  const days = Number(action.days_overdue);\n\n  if (priority === \"critical\" || days >= 7) {\n    return \"RED\";\n  }\n\n  if (priority === \"high\" || days >= 3) {\n    return \"AMBER\";\n  }\n\n  return \"GREEN\";\n}\n\nconst classified = actions.map(action => ({\n  ...action,\n  risk_rating: classifyRisk(action)\n}));\n\nconst sorted = classified.sort(\n  (a, b) => b.days_overdue - a.days_overdue\n);\n\nconst counts = {\n  RED: sorted.filter(a => a.risk_rating === \"RED\").length,\n  AMBER: sorted.filter(a => a.risk_rating === \"AMBER\").length,\n  GREEN: sorted.filter(a => a.risk_rating === \"GREEN\").length\n};\n\nlet report = \"SAP PROJECT - OVERDUE ACTION REPORT\\n\";\nreport += \"================================\\n\\n\";\nreport += `Total overdue actions: ${sorted.length}\\n`;\nreport += `RED: ${counts.RED} | AMBER: ${counts.AMBER} | GREEN: ${counts.GREEN}\\n\\n`;\n\nsorted.forEach((action, index) => {\n  report += `${index + 1}. ${action.action_name}\\n`;\n  report += `   Owner: ${action.action_owner}\\n`;\n  report += `   Priority: ${action.priority}\\n`;\n  report += `   Days overdue: ${action.days_overdue}\\n`;\n  report += `   Risk: ${action.risk_rating}\\n\\n`;\n});\n\nreturn [{\n  json: {\n    project_name: \"SAP Transformation\",\n    overdue_count: sorted.length,\n    risk_counts: counts,\n    actions: sorted,\n    report\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "36207512-d5d2-4ec7-a866-d44c7740cf7e",
+      "name": "Generate Overdue Report"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = $input.first().json;\n\nconst recommendations = data.actions.map(action => {\n  let recommendation;\n\n  if (action.risk_rating === \"RED\") {\n    recommendation =\n      \"Escalate to the project manager and workstream lead. \" +\n      \"Confirm delivery impact, recovery owner, and target date. \" +\n      \"Review whether a governance decision is required.\";\n  } else if (action.risk_rating === \"AMBER\") {\n    recommendation =\n      \"Request a recovery plan from the action owner. \" +\n      \"Review progress at the next project checkpoint.\";\n  } else {\n    recommendation =\n      \"Continue routine monitoring and confirm the closure date.\";\n  }\n\n  return {\n    ...action,\n    recommendation\n  };\n});\n\nlet report = \"SAP PROJECT - RAID ACTION REVIEW\\n\";\nreport += \"================================\\n\\n\";\n\nrecommendations.forEach((action, index) => {\n  report += `${index + 1}. ${action.action_name}\\n`;\n  report += `Risk: ${action.risk_rating}\\n`;\n  report += `Owner: ${action.action_owner}\\n`;\n  report += `Recommendation: ${action.recommendation}\\n\\n`;\n});\n\nreturn [{\n  json: {\n    project_name: data.project_name,\n    overdue_count: data.overdue_count,\n    risk_counts: data.risk_counts,\n    recommendations,\n    report\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -96
+      ],
+      "id": "536d8fc4-b130-4ea5-b47d-57b17eed5073",
+      "name": "PM Recommendations"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an experienced SAP S/4HANA Programme Delivery, Cutover and Service Transition Advisor.\n\nPROJECT CONTEXT:\n- ELS means Early Life Support (hypercare), not Enterprise Lifecycle Services.\n- UAT means User Acceptance Testing.\n- Cutover is the controlled transition from the existing environment to the target production environment.\n- All project actions below are fictional training data.\n- The RED, AMBER and GREEN ratings are preliminary rules-based classifications, not confirmed delivery impacts.\n\nPROJECT ACTION REPORT:\n{{ $json.report }}\n\nFor EACH action, provide:\n1. Action name, owner, days overdue and existing RAG rating.\n2. Potential SAP delivery impact, clearly labelled as a hypothesis.\n3. Two specific, practical next steps appropriate to the action.\n4. Missing information or evidence required to confirm the impact.\n5. Suggested escalation or governance checkpoint, only where justified.\n\nThen provide an executive summary covering:\n- The most important potential delivery concerns.\n- What needs validating before escalation or a go/no-go decision.\n- Immediate recommended PM follow-up actions.\n\nSTRICT RULES:\n- Never expand ELS incorrectly. ELS = Early Life Support.\n- Do not invent contractual penalties, confirmed delays, dependencies, approvals, committees, dates, defects or financial impacts.\n- Do not assume UAT sign-off is a prerequisite for cutover-plan approval.\n- Do not claim a risk has materialised solely because its RAG rating is RED.\n- Do not invent a governance body; say 'relevant governance forum' if unknown.\n- Separate confirmed facts from possible impacts and information gaps.\n- Preserve the supplied action owners and risk ratings.\n- Use concise professional British English.\n- Avoid unnecessary tables and generic project-management language.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "75230d74-6319-45fc-aaa2-3a41038c2a73",
+      "name": "AI RAID Analysis"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        112
+      ],
+      "id": "f2a0aa60-7eb5-455f-ab1a-ea79b9a8ede3",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "\n{\n  \"project_name\": \"SAP Transformation\",\n  \"executive_summary\": \"Three overdue actions require review. Potential delivery impacts must be validated.\",\n  \"red_count\": 2,\n  \"amber_count\": 1,\n  \"green_count\": 0,\n  \"actions\": [\n    {\n      \"action_name\": \"Finalise ELS strategy\",\n      \"owner\": \"Priya\",\n      \"days_overdue\": 7,\n      \"risk_rating\": \"RED\",\n      \"affected_area\": \"Early Life Support / Service Transition\",\n      \"potential_impact\": \"Possible gaps in hypercare readiness if the strategy remains incomplete.\",\n      \"recommendations\": [\n        \"Confirm the outstanding ELS strategy decisions with the service transition lead.\",\n        \"Agree a recovery plan and review the readiness impact.\"\n      ],\n      \"missing_information\": [\n        \"Current ELS strategy approval status\",\n        \"Planned hypercare arrangements and ownership\"\n      ]\n    }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1488,
+        112
+      ],
+      "id": "c88d576b-7d73-44d1-8b7a-0619633a9fd9",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nconst raw = $input.first().json;\nconst ai = JSON.parse(JSON.stringify(raw.output ?? raw));\n\nconst original = $(\"Generate Overdue Report\").first().json;\nconst expected = original.actions;\nconst errors = [];\n\nif (!Array.isArray(expected)) {\n  throw new Error(\"Original actions array not found\");\n}\n\nconst actual = Array.isArray(ai.actions) ? ai.actions : [];\n\nif (actual.length !== expected.length) {\n  errors.push(\n    `Expected ${expected.length} actions, received ${actual.length}`\n  );\n}\n\nfor (const source of expected) {\n  const matches = actual.filter(\n    item => item.action_name === source.action_name\n  );\n\n  if (matches.length !== 1) {\n    errors.push(\n      `Missing or duplicated action: ${source.action_name}`\n    );\n    continue;\n  }\n\n  const item = matches[0];\n\n  if (item.owner !== source.action_owner) {\n    errors.push(`Incorrect owner: ${source.action_name}`);\n  }\n\n  if (item.risk_rating !== source.risk_rating) {\n    errors.push(`Incorrect risk: ${source.action_name}`);\n  }\n\n  // Restore verified overdue days from source data.\n  item.days_overdue = Number(source.days_overdue);\n\n  if (typeof item.potential_impact !== \"string\" ||\n      !item.potential_impact.trim()) {\n    errors.push(`Missing impact: ${source.action_name}`);\n  }\n\n  if (!Array.isArray(item.recommendations) ||\n      item.recommendations.length < 2) {\n    errors.push(`Missing recommendations: ${source.action_name}`);\n  }\n\n  if (!Array.isArray(item.missing_information) ||\n      item.missing_information.length < 1) {\n    errors.push(`Missing information: ${source.action_name}`);\n  }\n}\n\nconst counts = original.risk_counts;\n\nif (Number(ai.red_count) !== Number(counts.RED)) {\n  errors.push(\"Incorrect RED count\");\n}\n\nif (Number(ai.amber_count) !== Number(counts.AMBER)) {\n  errors.push(\"Incorrect AMBER count\");\n}\n\nif (Number(ai.green_count) !== Number(counts.GREEN)) {\n  errors.push(\"Incorrect GREEN count\");\n}\n\nif (typeof ai.executive_summary !== \"string\" ||\n    !ai.executive_summary.trim()) {\n  errors.push(\"Missing executive summary\");\n}\n\nreturn [\n  {\n    json: {\n      validation_status: errors.length === 0 ? \"PASS\" : \"FAIL\",\n      validation_errors: errors,\n      project_name: original.project_name,\n      overdue_count: expected.length,\n      risk_counts: counts,\n      ai_analysis: ai\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -96
+      ],
+      "id": "fd4406ab-6f79-4c20-8988-931a90ab3330",
+      "name": "Validate AI Output"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "2b1060a8-f08e-436b-882b-744f3064f059",
+              "leftValue": "={{ $json.validation_status }}",
+              "rightValue": "PASS",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1936,
+        -96
+      ],
+      "id": "4e1ec070-f8c6-4222-a189-2368ef4d8909",
+      "name": "Validation Passed?"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = $input.first().json;\n\nif (data.validation_status !== \"PASS\") {\n  throw new Error(\"Report blocked: validation not passed\");\n}\n\nconst ai = data.ai_analysis;\nconst actions = ai.actions;\nconst counts = data.risk_counts;\n\nconst reviewStatus = {\n  data_validation: \"PASSED\",\n  pm_review: \"PENDING\",\n  distribution_approval: \"NOT APPROVED\"\n};\n\nconst escapeHtml = (value) =>\n  String(value ?? \"\").replace(/[&<>\"']/g, c => ({\n    \"&\": \"&amp;\",\n    \"<\": \"&lt;\",\n    \">\": \"&gt;\",\n    '\"': \"&quot;\",\n    \"'\": \"&#39;\"\n  })[c]);\n\nconst list = (items) =>\n  \"<ul>\" +\n  (Array.isArray(items) ? items : [])\n    .map(x => `<li>${escapeHtml(x)}</li>`)\n    .join(\"\") +\n  \"</ul>\";\n\nconst rows = actions.map(a => `\n  <tr>\n    <td>\n      <strong>${escapeHtml(a.action_name)}</strong>\n      <div class=\"muted\">${escapeHtml(a.affected_area)}</div>\n    </td>\n    <td>${escapeHtml(a.owner)}</td>\n    <td>${escapeHtml(a.days_overdue)}</td>\n    <td><span class=\"rag ${escapeHtml(a.risk_rating)}\">\n      ${escapeHtml(a.risk_rating)}\n    </span></td>\n    <td>${escapeHtml(a.potential_impact)}</td>\n    <td>${list(a.recommendations)}</td>\n    <td>${list(a.missing_information)}</td>\n  </tr>\n`).join(\"\");\n\nconst html = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>SAP RAID Governance Report</title>\n<style>\nbody {\n  font-family: Arial, sans-serif;\n  color: #243047;\n  background: #f4f6fa;\n  margin: 0;\n  padding: 32px;\n}\n.container {\n  max-width: 1250px;\n  margin: auto;\n  background: white;\n  padding: 32px;\n  border-radius: 12px;\n}\nh1 { margin-bottom: 5px; }\n.muted { color: #667085; font-size: 13px; margin-top: 6px; }\n.summary {\n  background: #f0f4fa;\n  padding: 18px;\n  border-radius: 8px;\n  margin: 20px 0;\n}\n.kpis { display: flex; gap: 12px; margin: 22px 0; }\n.kpi {\n  flex: 1;\n  padding: 18px;\n  border: 1px solid #e1e5ec;\n  border-radius: 8px;\n}\n.kpi strong { display: block; font-size: 28px; }\ntable { width: 100%; border-collapse: collapse; font-size: 13px; }\nth, td {\n  padding: 13px;\n  border: 1px solid #e1e5ec;\n  text-align: left;\n  vertical-align: top;\n}\nth { background: #edf1f7; }\nul { padding-left: 18px; margin: 0; }\nli { margin-bottom: 7px; }\n.rag {\n  display: inline-block;\n  padding: 5px 9px;\n  border-radius: 5px;\n  font-weight: bold;\n}\n.RED { background: #fee2e2; color: #991b1b; }\n.AMBER { background: #fef3c7; color: #92400e; }\n.GREEN { background: #dcfce7; color: #166534; }\n.footer { margin-top: 25px; font-size: 12px; color: #667085; }\n@media print {\n  body { background: white; padding: 0; }\n  .container { padding: 12px; }\n}\n</style>\n</head>\n<body>\n<div class=\"container\">\n  <h1>SAP RAID Governance Report</h1>\n  <p class=\"muted\">\n    Project: ${escapeHtml(data.project_name || \"SAP Transformation\")}\n    | Training demonstration\n  </p>\n\n<h2>Governance Review Status</h2>\n<div class=\"summary\">\n  <p><strong>Data validation:</strong> ${reviewStatus.data_validation}</p>\n  <p><strong>PM review:</strong> ${reviewStatus.pm_review}</p>\n  <p><strong>Distribution approval:</strong> ${reviewStatus.distribution_approval}</p>\n  <p class=\"muted\">\n    AI-generated analysis must be reviewed by an authorised\n    project representative before stakeholder distribution.\n  </p>\n</div>\n\n  <h2>Executive Summary</h2>\n  <div class=\"summary\">\n    ${escapeHtml(ai.executive_summary)}\n  </div>\n\n  <div class=\"kpis\">\n    <div class=\"kpi\"><strong>${actions.length}</strong>Overdue actions</div>\n    <div class=\"kpi\"><strong>${counts.RED}</strong>Red risks</div>\n    <div class=\"kpi\"><strong>${counts.AMBER}</strong>Amber risks</div>\n    <div class=\"kpi\"><strong>${counts.GREEN}</strong>Green risks</div>\n  </div>\n\n  <h2>Overdue Actions and Delivery Assessment</h2>\n  <table>\n    <thead>\n      <tr>\n        <th>Action / Area</th>\n        <th>Owner</th>\n        <th>Days overdue</th>\n        <th>RAG</th>\n        <th>Potential impact</th>\n        <th>Recommended follow-up</th>\n        <th>Evidence gaps</th>\n      </tr>\n    </thead>\n    <tbody>${rows}</tbody>\n  </table>\n\n  <p class=\"footer\">\n    Generated from validated fictional training data.\n    RAG classifications are preliminary.\n    Potential impacts require project-team verification.\n    Human review is required before stakeholder distribution.\n  </p>\n</div>\n</body>\n</html>`;\n\nreturn [{\n  json: {\n    report_title: \"SAP RAID Governance Report\",\n    validation_status: data.validation_status,\n    report_html: html,\n    distribution_approved: false,\n    action_count: actions.length,\n    risk_counts: counts\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        -192
+      ],
+      "id": "37cdda67-b855-4115-8960-10354c75d058",
+      "name": "Generate HTML RAID Report"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "report_html",
+        "binaryPropertyName": "=",
+        "options": {
+          "fileName": "SAP_RAID_Governance_Report.html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        4176,
+        -176
+      ],
+      "id": "f0ff64a4-bd13-4423-89b6-697dbb8979bb",
+      "name": "Create HTML Report File"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "895f0a77-f14b-41d7-8510-2457b1da08a4",
+              "leftValue": "={{ $json.distribution_approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        2384,
+        -192
+      ],
+      "id": "f6694fdf-4a41-4586-a43e-6a46e1cab040",
+      "name": "Human Approval Gate1"
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "SAP RAID Governance Review",
+        "formDescription": "Review the SAP RAID report before authorising distribution",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Submit Review",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Review Comments"
+            },
+            {
+              "fieldLabel": "Reviewer Name",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2608,
+        -176
+      ],
+      "id": "3400918f-b8d1-43a6-bc24-793eebd6a3dc",
+      "name": "Await PM Review"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7cc642e3-3bcd-4179-a2cf-21047be2e054",
+              "name": "report_html",
+              "value": "={{ $('Generate HTML RAID Report').first().json.report_html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2832,
+        -176
+      ],
+      "id": "a1e8598b-ccc1-46c9-808f-a1e59a5b4f66",
+      "name": "Restore HTML Report."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "539deb53-9295-47a9-ac91-fe0f1459185d",
+              "leftValue": "={{ $json[\"Submit Review\"] }}",
+              "rightValue": "Approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        3728,
+        -176
+      ],
+      "id": "b4717222-16ab-4b96-b77d-52a4bdfb2986",
+      "name": "Review Decision Gate"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  // Fail safely if approval details are missing.\n  if (\n    data[\"Submit Review\"] !== \"Approve\" ||\n    !String(data[\"Reviewer Name\"] ?? \"\").trim()\n  ) {\n    throw new Error(\"Valid approval and reviewer name required.\");\n  }\n\n  let html = data.report_html;\n\n  if (typeof html !== \"string\" || !html.includes(\"<!DOCTYPE html>\")) {\n    throw new Error(\"Valid HTML report is missing.\");\n  }\n\n  const escapeHtml = value => String(value)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\")\n    .replace(/\"/g, \"&quot;\")\n    .replace(/'/g, \"&#39;\");\n\n  const reviewer = escapeHtml(data[\"Reviewer Name\"].trim());\n\n  // Verify the original report is still awaiting review.\n  if (\n    !html.includes(\"<strong>PM review:</strong> PENDING\") ||\n    !html.includes(\"<strong>Distribution approval:</strong> NOT APPROVED\")\n  ) {\n    throw new Error(\"Expected pending approval markers not found.\");\n  }\n\n  html = html.replace(\n    \"<strong>PM review:</strong> PENDING\",\n    `<strong>PM review:</strong> APPROVED by ${reviewer}`\n  );\n\n  html = html.replace(\n    \"<strong>Distribution approval:</strong> NOT APPROVED\",\n    \"<strong>Distribution approval:</strong> APPROVED FOR REVIEWED DISTRIBUTION\"\n  );\n\n  return {\n    json: {\n      ...data,\n      report_html: html,\n      approval_status: \"APPROVED\",\n      approved_by: data[\"Reviewer Name\"].trim()\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3952,
+        -176
+      ],
+      "id": "18aaba52-4974-4ad0-bbb5-f4fb054a4364",
+      "name": "Update Approved Report"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map((item, index) => {\n  const data = item.json;\n  const decision = String(data['Submit Review'] ?? '').trim();\n  const reviewer = String(data['Reviewer Name'] ?? '').trim();\n  const submittedAt = String(data.submittedAt ?? '');\n\n  if (!['Approve', 'Reject'].includes(decision)) {\n    throw new Error('Review decision must be Approve or Reject.');\n  }\n\n  if (!reviewer) {\n    throw new Error('Reviewer Name is required.');\n  }\n\n  if (!submittedAt || Number.isNaN(Date.parse(submittedAt))) {\n    throw new Error('A valid form submission time is required.');\n  }\n\n  return {\n    json: {\n      ...data,\n      approval_audit: {\n        audit_event_id: `${$workflow.id}:${$execution.id}:${index}`,\n        execution_id: String($execution.id),\n        workflow_id: String($workflow.id),\n        report_title: data.report_title || 'SAP RAID Governance Report',\n        decision,\n        reviewer_name: reviewer,\n        reviewer_identity_source: 'self_reported_form_field',\n        review_comments: String(data['Review Comments'] ?? ''),\n        submitted_at: submittedAt,\n        recorded_at: new Date().toISOString(),\n        form_mode: String(data.formMode ?? '')\n      }\n    },\n    ...(item.binary ? { binary: item.binary } : {}),\n    pairedItem: { item: index }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        -176
+      ],
+      "id": "c49a8b26-5a25-4517-900a-4a5b575b2544",
+      "name": "Build Approval Audit"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "audit_event_id": "={{ $json.approval_audit.audit_event_id }}",
+            "execution_id": "={{ $json.approval_audit.execution_id }}",
+            "workflow_id": "={{ $json.approval_audit.workflow_id }}",
+            "report_title": "={{ $json.approval_audit.report_title }}",
+            "decision": "={{ $json.approval_audit.decision }}",
+            "reviewer_name": "={{ $json.approval_audit.reviewer_name }}",
+            "review_comments": "={{ $json.approval_audit.review_comments }}",
+            "submitted_at": "={{ $json.approval_audit.submitted_at }}",
+            "recorded_at": "={{ $json.approval_audit.recorded_at }}",
+            "reviewer_identity_source": "={{ $json.approval_audit.reviewer_identity_source }}",
+            "form_mode": "={{ $json.approval_audit.form_mode }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "audit_event_id",
+              "displayName": "audit_event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "workflow_id",
+              "displayName": "workflow_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "report_title",
+              "displayName": "report_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "decision",
+              "displayName": "decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "reviewer_name",
+              "displayName": "reviewer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review_comments",
+              "displayName": "review_comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "submitted_at",
+              "displayName": "submitted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "recorded_at",
+              "displayName": "recorded_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "reviewer_identity_source",
+              "displayName": "reviewer_identity_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "form_mode",
+              "displayName": "form_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3280,
+        -176
+      ],
+      "id": "9cae296d-9b72-4ede-927a-5bf35db9c028",
+      "name": "Save approval  Audit"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map((savedRow, index) => {\n  const original = $('Build Approval Audit').itemMatching(index);\n\n  if (savedRow.json.id == null) {\n    throw new Error('No saved audit row identifier was returned.');\n  }\n\n  if (\n    savedRow.json.audit_event_id !==\n    original.json.approval_audit.audit_event_id\n  ) {\n    throw new Error('Saved audit row does not match this review.');\n  }\n\n  return {\n    json: {\n      ...original.json,\n      audit_storage: {\n        saved: true,\n        row_id: savedRow.json.id,\n        created_at: savedRow.json.createdAt\n      }\n    },\n    ...(original.binary ? { binary: original.binary } : {}),\n    pairedItem: { item: index }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3504,
+        -176
+      ],
+      "id": "c469ef38-df38-49c0-8822-dec89eec8391",
+      "name": "Restore Review Context"
+    }
+  ],
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Generate Overdue Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Overdue Report": {
+      "main": [
+        [
+          {
+            "node": "PM Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PM Recommendations": {
+      "main": [
+        [
+          {
+            "node": "AI RAID Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI RAID Analysis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI RAID Analysis",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI RAID Analysis": {
+      "main": [
+        [
+          {
+            "node": "Validate AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate AI Output": {
+      "main": [
+        [
+          {
+            "node": "Validation Passed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Passed?": {
+      "main": [
+        [
+          {
+            "node": "Generate HTML RAID Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HTML RAID Report": {
+      "main": [
+        [
+          {
+            "node": "Human Approval Gate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HTML Report File": {
+      "main": [
+        []
+      ]
+    },
+    "Human Approval Gate1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Await PM Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Await PM Review": {
+      "main": [
+        [
+          {
+            "node": "Restore HTML Report.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore HTML Report.": {
+      "main": [
+        [
+          {
+            "node": "Build Approval Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Decision Gate": {
+      "main": [
+        [
+          {
+            "node": "Update Approved Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Approved Report": {
+      "main": [
+        [
+          {
+            "node": "Create HTML Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Approval Audit": {
+      "main": [
+        [
+          {
+            "node": "Save approval  Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save approval  Audit": {
+      "main": [
+        [
+          {
+            "node": "Restore Review Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Review Context": {
+      "main": [
+        [
+          {
+            "node": "Review Decision Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": []
+}
